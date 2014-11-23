@@ -1,7 +1,8 @@
 /*Latest
- * Version 9 of Sudoku
+ * Version 10 of Sudoku
  * Change Log: 
- * Implemented rule 2
+ * 1. simplifying rule 2.
+ * 
 */
 #include<stdio.h>
 #include<stdlib.h>
@@ -16,57 +17,45 @@ void fillHintRowUsingSudkoRow(int,int,int);
 void fillHintRowUsingSudkoColumn(int,int,int);
 void fillHintRowUsingSudkoCell();	
 void fillNumUsingHintRow();			//Rule 1 ends
+void fillOccurences();
 void fillOccurencePerRow();			//Rule 2 Begins; Used to fill OccurencePerRow
 void fillOccurencePerCol();			//Fills occurences of number in columns
 void fillOccurencePerGrid();			//Fills occurences of number in grids
-void clearOccurenceRow();
-void clearOccurenceCol();
-void clearOccurenceGrid();
-int i=0,j=0,k=0,len=0,size=0,fill_count=0;
+int i=0,j=0,k=0,len=0,size=0;
 int *a[psize*psize][psize*psize];
 int or[psize*psize][(psize*psize)+1];		//All the arrays here and after are used for rule 2. Takes 7ms in creation. 
 int pnr[psize*psize][(psize*psize)+1];
 int oc[psize*psize][(psize*psize)+1];
 int pnc[psize*psize][(psize*psize)+1];
-int og[psize*psize][(psize*psize)+1];
-int png[psize*psize][(psize*psize)+1];
+int og[psize*psize][psize*psize];
+int png[psize*psize][psize*psize];
 void print_og(int);
 void print_png(int);
-void status();
 int main(){
 	clock_t start = clock();
 	createSudoku();			//Create Data Structure.
 	fillSudoku();			//Fill input values
 	printSudoku();
-			//Initial filling of hint row
+	fillHintRow();			//Initial filling of hint row
 	fillNumUsingHintRow();	//Rule 1
 //	printSudoku();
-//	fillOccurencePerRow();
+	//fillOccurencePerRow();
 //	fillOccurencePerCol();
 	fillOccurencePerGrid();
 	printSudoku();
-	status();
 	clock_t stop = clock();
     double elapsed = (double)(stop - start) * 1000.0 / CLOCKS_PER_SEC;
-	printf("Time elapsed in ms:\t\t\t%.2f", elapsed);
+//  printf("Time elapsed in ms: %f", elapsed);
 	return 0;
 }
 void createSudoku(){
-	int i,j,k;
+	int i,j;
 	scanf("%d",&size);
 	getchar();
 	len=size*size;
-
 	for(i=0;i<len;i++){
 		for(j=0;j<len;j++){
 		a[i][j]=(int*)malloc(sizeof(int)*(len+1));
-		}
-	}
-	for(i=0;i<len;i++){
-		for(j=0;j<len;j++){
-			for(k=0;k<len+1;k++){
-				a[i][j][k]=0;
-			}
 		}
 	}
 }
@@ -100,7 +89,6 @@ void printSudoku(){
 			printf("\n");
 		printf("\n");					//to print nextline after after square
 	}
-	printf("-------------------------------------------------------------------------------\n");
 }
 void fillHintRow(){
 	int i,j,num=0;
@@ -175,7 +163,6 @@ void fillHintRowUsingSudkoCell(){
 	//printHintRow();
 }
 void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
-	fillHintRow();
 	int sum=0,num=0,i=0;j=0;k=0;
 	while(i<len){
 		j=0;
@@ -189,7 +176,6 @@ void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
 				if(sum==(len-1)){
 					a[i][j][0]=num;
 					printf("%d Filled in %d row, %d col\n",num,i+1,j+1);
-					fill_count++;
 					i=-1;						
 					j=-1;
 					fillHintRow();
@@ -201,68 +187,24 @@ void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
 		i++;
 	}
 }
+void fillOccurences(){
+	fillOccurencePerRow();
+	fillOccurencePerCol();
+	fillOccurencePerGrid();
+}
 void fillOccurencePerRow(){
 	int i,j,num=0,flag=0;
 	for(i=0;i<len;i++){
 		for(j=0;j<len;j++){			//Fill occurences per row
 			if(a[i][j][0]==0){		//if a number is not filled in sudoku; probe its hint list
-					int hint;
-					for(hint=1;hint<=len;hint++){
-						if(a[i][j][hint]==0){
-							if(or[i][hint]==-1){
-								continue;
-							}
-							or[i][hint]++;
-							pnr[i][hint]=pnr[i][hint]+j;
-						}
-						else if(a[i][j][hint]!=0){
-							or[i][hint]=-1;
-							pnr[i][hint]=-1;
-						}
+				int hint;
+				for(hint=1;hint<=len;hint++){
+					if(a[i][j][hint]==0){
+						or[i][hint]++;
+						pnr[i][hint]=pnr[i][hint]+j;
 					}
+				}
 			}
-		}
-		for(num=1;num<=len;num++){
-			if(or[i][num]==1){								//Only 1 occurence of a number;
-					printf("%d Filled in %d row, %d col  using occurences of Row\n",num,i+1,pnr[i][num]+1);
-					a[i][pnr[i][num]][0]=num;				//fill that number in sudoku
-					fill_count++;
-					//printSudoku();
-					fillNumUsingHintRow();
-					flag=1;
-					int hint;
-					int pos;
-					pos=pnr[i][hint];
-					for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
-						if(hint==num){
-							or[i][hint]=0;
-							pnr[i][hint]=0;
-							continue;
-						}
-						else if(a[i][pnr[i][num]][hint]==0){
-							or[i][hint]--;
-							pnr[i][hint]=pnr[i][hint]-pos;
-						}
-					}
-			}
-		}
-	}
-	if(flag==1){
-		clearOccurenceRow();
-		clearOccurenceCol();
-		clearOccurenceGrid();
-		fillOccurencePerRow();
-		fillOccurencePerCol();
-		fillOccurencePerGrid();
-	}
-}
-void clearOccurenceRow(){
-	int i,j,depth;
-	depth=psize*psize;
-	for(i=0;i<depth;i++){
-		for(j=0;j<(depth+1);j++){			//Fill occurences per row
-			or[i][j]=0;
-			pnr[i][j]=0;
 		}
 	}
 }
@@ -271,149 +213,44 @@ void fillOccurencePerCol(){
 	for(i=0;i<len;i++){
 		for(j=0;j<len;j++){
 			if(a[j][i][0]==0){								//if a number is not filled in sudoku; probe its hint list
-					int hint;
-					for(hint=1;hint<=len;hint++){			//Probing Hint list
-						if(a[j][i][hint]==0){				//check if a number can come there
-							if(oc[i][hint]==-1){
-								continue;
-							}
-							oc[i][hint]++;
-							pnc[i][hint]=pnr[i][hint]+j;	//save row number
-						}
-						else if(a[j][i][hint]!=0){
-							oc[i][hint]=-1;
-							pnc[i][hint]=-1;
-						}
+				int hint;
+				for(hint=1;hint<=len;hint++){			//Probing Hint list
+					if(a[j][i][hint]==0){				//check if a number can come there
+						oc[i][hint]++;
+						pnc[i][hint]=pnr[i][hint]+j;	//save row number
 					}
+				}
 			}
-		}
-		for(num=1;num<=len;num++){
-			if(oc[i][num]==1){								//Only 1 occurence of a number;
-					printf("%d Filled in %d row, %d col using occurences of Col\n",num,pnc[i][num]+1,i+1);
-					a[pnc[i][num]][i][0]=num;				//fill that number in sudoku
-					fill_count++;
-					//printSudoku();
-					fillNumUsingHintRow();
-					flag=1;
-					int hint;
-					int pos;
-					pos=pnc[i][num];
-					for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
-						if(hint==num){
-							oc[i][hint]=0;
-							pnc[i][hint]=0;
-							continue;
-						}
-						else if(a[pnc[i][num]][i][hint]==0){
-							oc[i][hint]--;
-							pnc[i][hint]=pnc[i][hint]-pos;
-						}
-					}
-			}
-		}
-	}
-	if(flag==1){
-		clearOccurenceRow();
-		clearOccurenceCol();
-		clearOccurenceGrid();
-		fillOccurencePerRow();
-		fillOccurencePerCol();
-		fillOccurencePerGrid();
-	}
-}
-void clearOccurenceCol(){
-	int i,j,depth;
-	depth=psize*psize;
-	for(i=0;i<depth;i++){
-		for(j=0;j<(depth+1);j++){			//Fill occurences per row
-			oc[i][j]=0;
-			pnc[i][j]=0;
 		}
 	}
 }
 void fillOccurencePerGrid(){
 	int i=0,j=0,row=0,col=0,num=0,grid_no=0,flag=0,cell_no;
 	for(i=0;i<len;i=i+size){
-		for(j=0;j<len;j=j+size){								//A grid starts here. in row and col, a row starts from  i
-			cell_no=0;
-			grid_no=i+(int)(j/size);
-			
+		for(j=0;j<len;j=j+size){
 			row=0;
+			grid_no=i+(j/3);
+			cell_no=0;
 			while(row<size){
 				col=0;
 				while(col<size){
-					cell_no=row*size+col;
-					int hint;
-					if(a[i+row][j+col][0]==0){	//implies no number is filled in sudoku
+					cell_no=row*3+col;
+					if(a[i+row][j+col][0]==0){
+						int hint;
 						for(hint=1;hint<=len;hint++){			//Probing Hint list
 							if(a[i+row][j+col][hint]==0){				//check if a number can come there
-								if(og[grid_no][hint]<0){
-									continue;
-								}
 								og[grid_no][hint]++;
 								png[grid_no][hint]=png[grid_no][hint]+cell_no;	//save row number
 							}
 						}
 					}
-					else if(a[i+row][j+col][0]!=0){
-						hint=a[i+row][j+col][0];
-						og[grid_no][hint]=-1;
-						png[grid_no][hint]=-1;
-					}
 					col++;
 				}
 				row++;
+				print_og(grid_no);
+				print_png(grid_no);
 			}//Occurences saved in og
-		//print_og(grid_no);
-		//print_png(grid_no);
-	
-		for(num=1;num<=len;num++){
-			if(og[grid_no][num]==1){//where occ is 1,fill that no in sudoku								//Only 1 occurence of a number;
-					int r,c;
-					cell_no=png[grid_no][num];
-					r=grid_no +(int)((cell_no)/size)-(grid_no%size);
-					c=((int)(grid_no%size)*size)+(cell_no%size);
-					printf("%d Filled in %d row, %d col using occurences of Grid\n",num,r+1,c+1);
-					a[r][c][0]=num;				//fill that number in sudoku
-					fill_count++;
-					//printSudoku();
-					fillNumUsingHintRow();
-					flag=1;
-					int hint;
-					int pos;
-					pos=png[grid_no][num];
-					for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
-						if(hint==num){
-							og[grid_no][hint]=0;
-							png[grid_no][hint]=0;
-							continue;
-						}
-						else if(a[r][c][hint]==0){
-							og[grid_no][hint]--;
-							png[grid_no][hint]=png[grid_no][hint]-pos;
-						}
-					}
-			}
-		}
-		if(flag==1){
-			clearOccurenceRow();
-			clearOccurenceCol();
-			clearOccurenceGrid();
-			fillOccurencePerRow();
-			fillOccurencePerCol();
-			fillOccurencePerGrid();
-		}
-		}//Change per grid must be done above this; end of j
-	}
-}
-void clearOccurenceGrid(){
-	int i,j,depth;
-	depth=psize*psize;
-	for(i=0;i<depth;i++){
-		for(j=0;j<(depth+1);j++){			//Fill occurences per row
-			og[i][j]=0;
-			png[i][j]=0;
-		}
+		}//Change per grid must be done above this
 	}
 }
 void print_og(int grid_no){
@@ -432,19 +269,97 @@ void print_png(int grid_no){
 	}
 	printf("\n");
 }
-void status(){
-	float num=0,total_num=0;
-	total_num=len*len;
-	for(i=0;i<len;i++){
-		for(j=0;j<len;j++){
-				if(a[i][j][0]!=0)num++;
-		}
-	}
-	if(total_num==num){
-		printf("Success !\n");
-	}
-		printf("Total Numbers:\t\t\t\t%.0f\n",total_num);
-		printf("Numbers Filled:\t\t\t\t%d\n",fill_count);
-		printf("Numbers Left:\t\t\t\t%.0f\n",total_num-num);
-		printf("Percentage Filled:\t\t\t%.2f\n",(num*100)/total_num);
+void fillUsingOccurences(){
+	int num;
+	for(num=1;num<=len;num++){
+				if(or[i][num]==1){								//Only 1 occurence of a number;
+						printf("%d Filled in %d row, %d col  using occurences of Row\n",num,i+1,pnr[i][num]+1);
+						a[i][pnr[i][num]][0]=num;				//fill that number in sudoku
+						printSudoku();
+						fillHintRow();
+						flag=1;
+						int hint;
+						int pos;
+						pos=pnr[i][hint];
+						for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
+							if(hint==num){
+								or[i][hint]=0;
+								pnr[i][hint]=0;
+								continue;
+							}
+							else if(a[i][pnr[i][num]][hint]==0){
+								or[i][hint]--;
+								pnr[i][hint]=pnr[i][hint]-pos;
+							}
+						}
+				}
+			}
+			if(flag==1){
+			//	fillOccurencePerRow();
+				fillOccurencePerCol();
+			}
 }
+//---------------2
+for(num=1;num<=len;num++){
+			if(oc[i][num]==1){								//Only 1 occurence of a number;
+					printf("%d Filled in %d row, %d col using occurences of Col\n",num,pnc[i][num]+1,i+1);
+					a[pnc[i][num]][i][0]=num;				//fill that number in sudoku
+					printSudoku();
+					fillHintRow();
+					flag=1;
+					int hint;
+					int pos;
+					pos=pnc[i][num];
+					for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
+						if(hint==num){
+							oc[i][hint]=0;
+							pnc[i][hint]=0;
+							continue;
+						}
+						else if(a[pnc[i][num]][i][hint]==0){
+							oc[i][hint]--;
+							pnc[i][hint]=pnc[i][hint]-pos;
+						}
+					}
+			}
+		}
+		if(flag==1){
+			//fillOccurencePerRow();
+			fillOccurencePerCol();
+		}
+//-------------------end 2
+//------start 
+for(num=1;num<=len;num++){
+			if(og[grid_no][num]==1){//where occ is 1,fill that no in sudoku								//Only 1 occurence of a number;
+					int r,c;
+					cell_no=png[grid_no][num];
+					r=grid_no +(cell_no/3);
+					c=((grid_no%3)*3)+(cell_no%3);
+					printf("%d Filled in %d row, %d col using occurences of Grid\n",num,r+1,c+1);
+					a[r][c][0]=num;				//fill that number in sudoku
+					printSudoku();
+					fillHintRow();
+					flag=1;
+					int hint;
+					int pos;
+					pos=png[grid_no][num];
+					for(hint=1;hint<=len;hint++){			//decrement the occurences of other element in its hint list
+						if(hint==num){
+							og[grid_no][hint]=0;
+							png[grid_no][hint]=0;
+							continue;
+						}
+						else if(a[r][c][hint]==0){
+							og[grid_no][hint]--;
+							png[grid_no][hint]=png[grid_no][hint]-pos;
+						}
+					}
+			}
+		}
+		if(flag==1){
+			//fillOccurencePerRow();
+			//fillOccurencePerCol();
+			//fillOccurencePerGrid();
+		}
+//--end 3	
+
