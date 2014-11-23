@@ -1,8 +1,7 @@
 /*Latest
- * Version 7 of Sudoku
+ * Version 8 of Sudoku
  * Change Log: 
- * 1. size of array kept 10 : increases time by 0.7 ms
- * 2. changed input format to separated by space
+ * 1. simplified filling of row, column and cell using single loop (2n^2 to n^2)
  * 
 */
 #include<stdio.h>
@@ -14,8 +13,8 @@ void fillSudoku();					//using input
 void printSudoku();					//print values in sudoku (used in start and end)
 void printHintRow();				//prints hint row
 void fillHintRow();					//1 in hint list means, that number cannot come.
-void fillHintRowUsingSudkoRow();
-void fillHintRowUsingSudkoColumn();
+void fillHintRowUsingSudkoRow(int,int,int);
+void fillHintRowUsingSudkoColumn(int,int,int);
 void fillHintRowUsingSudkoCell();	
 void fillNumUsingHintRow();			//Rule 1
 int i=0,j=0,k=0,len=0,size=0;
@@ -75,6 +74,19 @@ void printSudoku(){
 		printf("\n");					//to print nextline after after square
 	}
 }
+void fillHintRow(){
+	int i,j,num=0;
+	for(i=0;i<len;i++){
+		for(j=0;j<len;j++){
+			if(a[i][j][0]>0){								//if a number is filled in sudoku
+				num=a[i][j][0];								//get that number in num
+				fillHintRowUsingSudkoRow(i,j,num);
+				fillHintRowUsingSudkoColumn(i,j,num);
+			}
+		}
+	}
+	fillHintRowUsingSudkoCell();			//Implementation of this left as it is, as it was complicated to manipulate rows and colums by passing parameters
+}
 void printHintRow(){
 	int i,j,k;
 		for(i=0;i<len;i++){
@@ -90,32 +102,18 @@ void printHintRow(){
 		}
 	printf("\n");
 }
-void fillHintRowUsingSudkoRow(){
-	int i,j,col=0,num=0;
-	for(i=0;i<len;i++){
-		for(j=0;j<len;j++){
-			if(a[i][j][0]>0){								//if a number is filled in sudoku
-				num=a[i][j][0];								//get that number in num
-				for(col=0;col<len;col++){
-					if(a[i][col][0]==0)a[i][col][num]=1;	//for its row, where there is a blank, update its hint list that it num cannot come
-				}											//1 in hint list means, that number cannot come
-			}
-		}
+void fillHintRowUsingSudkoRow(int i,int j,int num){
+	int col;
+	for(col=0;col<len;col++){					//for all its column, where there is a blank, update its hint list that num cannot come
+		if(a[i][col][0]==0)a[i][col][num]=1;	//1 in hint list means, that number cannot come
 	}
-	//printHintRow();
-}	
-void fillHintRowUsingSudkoColumn(){
-	int i,j,row=0,num=0;
-	for(i=0;i<len;i++){
-		for(j=0;j<len;j++){
-			if(a[i][j][0]>0){								//if a number is filled in sudoku
-				num=a[i][j][0];								//get that number in num
-				for(row=0;row<len;row++){
-					if(a[row][j][0]==0)a[row][j][num]=1;	//place 1 in all blank cell in all rows corresponding to that number	
-				}
-			}
-		}
-	}
+	//printHintRow();											
+}
+void fillHintRowUsingSudkoColumn(int i,int j,int num){
+	int row;
+	for(row=0;row<len;row++){					//run for all its rows
+		if(a[row][j][0]==0)a[row][j][num]=1;	//if there is a blank, update its hint list that num cannot come	
+	}											//1 in hint list means, this number cannot come
 	//printHintRow();
 }
 void fillHintRowUsingSudkoCell(){
@@ -146,7 +144,7 @@ void fillHintRowUsingSudkoCell(){
 			}
 		}
 	}
-	printHintRow();
+	//printHintRow();
 }
 void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
 	int sum=0,num=0,i=0;j=0;k=0;
@@ -161,7 +159,7 @@ void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
 				}
 				if(sum==(len-1)){
 					a[i][j][0]=num;
-					printf("%d Filled in %d row, %d col\n",num,i+1,j+1);
+					printf("%d Filled in %d row, %d col using Occurences in Row\n",num,i+1,j+1);
 					i=-1;
 					j=-1;
 					fillHintRow();
@@ -172,9 +170,4 @@ void fillNumUsingHintRow(){						//Fills number using hint row only. Rule 1
 		}
 		i++;
 	}
-}
-void fillHintRow(){
-	fillHintRowUsingSudkoRow();
-	fillHintRowUsingSudkoColumn();
-	fillHintRowUsingSudkoCell();
 }
